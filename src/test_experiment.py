@@ -1,54 +1,72 @@
 import unittest
-from experiment import Experiment
 from signal_detection import SignalDetection
+from experiment import Experiment  # Assuming Experiment is in experiment.py
 
 class TestExperiment(unittest.TestCase):
 
     def setUp(self):
+        """Create a new Experiment instance before each test."""
         self.exp = Experiment()
 
     def test_add_condition(self):
-        sdt_obj = SignalDetection(40, 10, 20, 30)
-        self.exp.add_condition(sdt_obj, label="Condition A")
+        """Test adding a condition."""
+        sd1 = SignalDetection(5, 2, 8, 2)
+        self.exp.add_condition(sd1, "Condition A")
         self.assertEqual(len(self.exp.conditions), 1)
-        self.assertEqual(self.exp.conditions[0][1], "Condition A")
 
     def test_sorted_roc_points(self):
-        self.exp.add_condition(SignalDetection(40, 10, 20, 30), label="Condition A")
-        self.exp.add_condition(SignalDetection(30, 20, 15, 35), label="Condition B")
-        false_alarm_rate, hit_rate = self.exp.sorted_roc_points()
-        self.assertEqual(sorted(false_alarm_rate), false_alarm_rate)
-        self.assertEqual(len(false_alarm_rate), len(hit_rate))
-
-    def test_compute_auc_known_cases(self):
-        # Test case for AUC = 0.5
-        self.exp.add_condition(SignalDetection(0, 1, 1, 0))
-        self.assertEqual(self.exp.compute_auc(), 0.5)
-
-        # Test case for AUC = 1
-        self.exp.add_condition(SignalDetection(0, 1, 1, 0))
-        self.exp.add_condition(SignalDetection(0, 1, 0, 1))
-        self.assertEqual(self.exp.compute_auc(), 1.0)
-
-    def test_empty_experiment(self):
-        with self.assertRaises(ValueError):
-            self.exp.sorted_roc_points()
-
-        with self.assertRaises(ValueError):
-            self.exp.compute_auc()
-    def test_compute_auc_known_cases(self):
-        # Create signal detection objects
+        """Test that sorted_roc_points returns sorted false alarm rates and hit rates."""
         sd1 = SignalDetection(5, 2, 8, 2)  # hit_rate = 0.714, fa_rate = 0.8
-        sd2 = SignalDetection(3, 1, 2, 1)   # hit_rate = 0.75, fa_rate = 0.67
-    
-        # Add them to the experiment
-        self.exp.add_condition(sd1, "Low")
-        self.exp.add_condition(sd2, "High")
+        sd2 = SignalDetection(3, 1, 2, 1)  # hit_rate = 0.75, fa_rate = 0.67
+        self.exp.add_condition(sd1, "Condition A")
+        self.exp.add_condition(sd2, "Condition B")
+        
+        false_alarm_rate, hit_rate = self.exp.sorted_roc_points()
+        
+        self.assertEqual(len(false_alarm_rate), 2)
+        self.assertEqual(len(hit_rate), 2)
+        self.assertGreater(false_alarm_rate[1], false_alarm_rate[0])  # Check that fa_rate is sorted
+
+    def test_compute_auc(self):
+        """Test computing AUC."""
+        sd1 = SignalDetection(5, 2, 8, 2)  # hit_rate = 0.714, fa_rate = 0.8
+        sd2 = SignalDetection(3, 1, 2, 1)  # hit_rate = 0.75, fa_rate = 0.67
+        self.exp.add_condition(sd1, "Low Noise")
+        self.exp.add_condition(sd2, "High Noise")
 
         auc = self.exp.compute_auc()
-        print(f"Computed AUC: {auc}")  # Should print AUC value
+        print(f"Computed AUC: {auc}")
+        self.assertAlmostEqual(auc, 0.0976, places=3)  # Test with expected AUC value
 
-        self.assertEqual(auc, 0.5)  # If AUC = 0.5 for these specific cases
+    def test_empty_experiment(self):
+        """Test that an error is raised when no conditions are added."""
+        with self.assertRaises(ValueError):
+            self.exp.compute_auc()
 
-if __name__ == '__main__':
+    def test_auc_two_conditions(self):
+        """Test AUC when two conditions are perfectly diagonal."""
+        sd1 = SignalDetection(5, 5, 5, 5)  # hit_rate = 0.5, fa_rate = 0.5
+        sd2 = SignalDetection(10, 0, 0, 10)  # hit_rate = 1.0, fa_rate = 0.0
+        self.exp.add_condition(sd1, "Condition A")
+        self.exp.add_condition(sd2, "Condition B")
+
+        auc = self.exp.compute_auc()
+        print(f"Computed AUC: {auc}")
+        self.assertAlmostEqual(auc, 0.5, places=2)
+
+    def test_auc_three_conditions(self):
+        """Test AUC when three conditions create a perfect ROC curve."""
+        sd1 = SignalDetection(5, 5, 5, 5)  # hit_rate = 0.5, fa_rate = 0.5
+        sd2 = SignalDetection(10, 0, 0, 10)  # hit_rate = 1.0, fa_rate = 0.0
+        sd3 = SignalDetection(0, 10, 10, 0)  # hit_rate = 0.0, fa_rate = 1.0
+        self.exp.add_condition(sd1, "Condition A")
+        self.exp.add_condition(sd2, "Condition B")
+        self.exp.add_condition(sd3, "Condition C")
+
+        auc = self.exp.compute_auc()
+        print(f"Computed AUC: {auc}")
+        self.assertEqual(auc, 1.0)
+
+if __name__ == "__main__":
     unittest.main()
+

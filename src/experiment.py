@@ -1,14 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from signal_detection import SignalDetection  # Assuming you have this class implemented
+from signal_detection import SignalDetection  # Assuming SignalDetection class is already defined
 
 class Experiment:
     def __init__(self):
-        """Initialize an empty experiment with a list of conditions."""
+        """Initializes an empty experiment with a list of conditions."""
         self.conditions = []  # Stores (SignalDetection object, label) tuples
 
     def add_condition(self, sdt_obj: SignalDetection, label: str = None) -> None:
-        """Add an SDT object with an optional label."""
+        """Add a SignalDetection object with an optional label."""
         self.conditions.append((sdt_obj, label))
 
     def sorted_roc_points(self) -> tuple[list[float], list[float]]:
@@ -16,7 +16,6 @@ class Experiment:
         if not self.conditions:
             raise ValueError("No conditions have been added to the experiment.")
 
-        # Extract false alarm rates and hit rates
         false_alarm_rates = [sdt_obj.fa_rate() for sdt_obj, _ in self.conditions]
         hit_rates = [sdt_obj.hit_rate() for sdt_obj, _ in self.conditions]
 
@@ -34,7 +33,6 @@ class Experiment:
 
         false_alarm_rates, hit_rates = self.sorted_roc_points()
         auc = np.trapz(hit_rates, false_alarm_rates)  # Trapezoidal rule
-
         return auc
 
     def plot_roc_curve(self, show_plot: bool = True) -> None:
