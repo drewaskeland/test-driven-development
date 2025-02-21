@@ -1,5 +1,6 @@
 import unittest
-from your_module import Experiment, SignalDetection
+from experiment import Experiment
+from signal_detection import SignalDetection
 
 class TestExperiment(unittest.TestCase):
 
@@ -35,6 +36,19 @@ class TestExperiment(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.exp.compute_auc()
+    def test_compute_auc_known_cases(self):
+        # Create signal detection objects
+        sd1 = SignalDetection(5, 2, 8, 2)  # hit_rate = 0.714, fa_rate = 0.8
+        sd2 = SignalDetection(3, 1, 2, 1)   # hit_rate = 0.75, fa_rate = 0.67
+    
+        # Add them to the experiment
+        self.exp.add_condition(sd1, "Low")
+        self.exp.add_condition(sd2, "High")
+
+        auc = self.exp.compute_auc()
+        print(f"Computed AUC: {auc}")  # Should print AUC value
+
+        self.assertEqual(auc, 0.5)  # If AUC = 0.5 for these specific cases
 
 if __name__ == '__main__':
     unittest.main()
